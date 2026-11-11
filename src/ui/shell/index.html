@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http:; connect-src 'self' nexo:; frame-src 'self' nexo: https: http:; object-src 'none'; base-uri 'none'; form-action 'none';" />
+  <title>NEXO AI</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./workDossier.css" />
+  <link rel="stylesheet" href="./wormhole.css" />
+  <link rel="icon" href="../assets/identity/NEXO-Wormhole.ico" />
+</head>
+<body>
+  <div class="browser" data-right-menu-mode="auto">
+    <header class="chrome">
+      <div class="tabstrip">
+        <div class="chrome-brand"><button id="toggleLeftMenu" class="wormhole-button" aria-label="Abrir o cerrar menú izquierdo NEXO" aria-controls="leftMenu" aria-expanded="false" title="Menú NEXO"><img src="../assets/identity/NEXO-Wormhole.png" alt="" /></button><div><strong>NEXO <em>AI</em></strong><small>Tu portal al Mundo de la IA</small></div></div>
+        <div class="tabs" id="tabs" role="tablist"></div>
+        <button class="icon-btn new-tab" id="newTab" title="Pestaña nueva (Ctrl+T)" aria-label="Pestaña nueva">+</button>
+      <div class="ui-zoom header-zoom" role="group" aria-label="Zoom de la interfaz"><button data-ui-zoom="out" aria-label="Reducir interfaz">−</button><output data-ui-zoom-value aria-live="polite">100%</output><button data-ui-zoom="in" aria-label="Aumentar interfaz">+</button><button data-ui-zoom="reset" aria-label="Restablecer zoom de interfaz" title="Restablecer">↻</button></div>
+        <div class="chrome-right">
+          <span class="engine-pill" id="enginePill" title="Estado del motor de mediación">
+            <span class="dot"></span><span id="enginePillText">Mediación activa</span>
+          </span>
+          <button class="icon-btn" id="toggleSidebar" title="Panel EVO (Ctrl+Shift+I)" aria-label="Panel EVO" aria-controls="sidebar" aria-expanded="false">
+            <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 5h16v14H4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 5v14" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+        </div>
+      </div>
+
+
+      <div class="toolbar">
+        <div class="nav-group">
+          <button class="icon-btn" id="back" title="Atrás (Alt+←)" aria-label="Atrás">
+            <svg viewBox="0 0 24 24" width="17" height="17"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn" id="forward" title="Adelante (Alt+→)" aria-label="Adelante">
+            <svg viewBox="0 0 24 24" width="17" height="17"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn" id="reload" title="Recargar (Ctrl+R)" aria-label="Recargar">
+            <svg viewBox="0 0 24 24" width="17" height="17"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn" id="homeButton" title="Inicio" aria-label="Inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10H4V10M9 20v-7h6v7"/></svg></button>
+        </div>
+
+        <form class="omnibox-form" id="omniboxForm" autocomplete="off">
+          <span class="connection-indicator" id="connectionIndicator" role="img" aria-label="Página local de Nexo" title="Página local de Nexo">◇</span>
+          <input class="omnibox" id="omnibox" type="text" spellcheck="false"
+                 placeholder="Buscá o escribí una dirección…" aria-label="Barra de direcciones" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" />
+          <button class="icon-btn star" id="bookmarkBtn" type="button" title="Marcar esta página (Ctrl+D)"
+                  aria-label="Marcar esta página" aria-pressed="false">☆</button>
+          <div class="suggestions" id="suggestions" hidden role="listbox"></div>
+        </form>
+
+        <div class="sites" id="sites"></div>
+        <div class="quick-tools" id="quickTools" role="toolbar" aria-label="Accesos rápidos personalizables"></div>
+        <button class="icon-btn" id="commandsButton" title="Centro de comandos (Ctrl+K)" aria-label="Centro de comandos"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m5 6 6 6-6 6m8 0h6"/></svg></button>
+      </div>
+      <nav id="bookmarkBar" class="bookmark-bar" aria-label="Barra de favoritos" hidden></nav>
+    </header>
+
+<nav class="workspace-rail" id="leftMenu" inert aria-label="Navegación de Nexo"><p class="rail-caption" id="workspaceLabel">Principal</p><button class="rail-item selected" data-workspace-home aria-label="Inicio" title="Inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10H4V10M9 20v-7h6v7"/></svg><span>Inicio</span></button><button class="rail-item " data-open-panel="history" aria-label="Navegación" title="Navegación"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18"/></svg><span>Navegación</span></button><button class="rail-item " data-launch-chatgpt aria-label="Inteligencia artificial" title="Inteligencia artificial"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></svg><span>Inteligencia artificial</span></button><button class="rail-item" data-open-panel="work" aria-label="Expediente del objetivo" title="Continuar trabajo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3h16v18H4ZM8 7h8M8 12h8M8 17h5"/></svg><span>Objetivo</span></button><button class="rail-item " data-open-panel="memory" aria-label="EVO MEMORY" title="EVO MEMORY"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H6l-2 3v4l2 2-2 2v3l3 3h3V4m5 0h3l2 3v4l-2 2 2 2v3l-3 3h-3V4M8 9h2m4 0h2M8 16h2m4 0h2"/></svg><span>EVO MEMORY</span></button><button class="rail-item " data-open-panel="activity" aria-label="Rendimiento" title="Rendimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 2-9 12h7l-2 8 9-12h-7z"/></svg><span>Rendimiento</span></button><button class="rail-item " data-open-panel="sites" aria-label="Seguridad" title="Seguridad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6z"/><path d="m8 12 3 3 5-6"/></svg><span>Seguridad</span></button><button class="rail-item " disabled title="La gestión de extensiones no está disponible en esta versión" aria-label="Extensiones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h6V5a3 3 0 0 1 6 0v3h6v6h-3a3 3 0 0 0 0 6h-3v1H3v-6h3a3 3 0 0 0 0-6H3z"/></svg><span>Extensiones</span></button><button class="rail-item " data-open-panel="settings" aria-label="Ajustes" title="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16M8 3v8M16 13v8"/></svg><span>Ajustes</span></button><div class="rail-bottom"><img src="../assets/identity/NEXO-Wormhole.png" alt=""/><b>NEXO AI</b><span>Tu portal al Mundo de la IA</span><small>Explorá · Aprendé · Descubrí</small></div></nav>
+    <div class="ui-zoom floating-zoom" role="group" aria-label="Zoom de interfaz, acceso inferior"><span>Zoom</span><button data-ui-zoom="out" aria-label="Reducir interfaz">−</button><output data-ui-zoom-value>100%</output><button data-ui-zoom="in" aria-label="Aumentar interfaz">+</button><button data-ui-zoom="reset" aria-label="Restablecer interfaz">↻</button></div>
+    <main class="viewport" id="viewport">
+      <div class="findbar" id="findbar" hidden>
+        <input id="findInput" type="text" placeholder="Buscar en la página…" spellcheck="false" aria-label="Buscar en la página" />
+        <span class="find-count" id="findCount">0 de 0</span>
+        <button class="icon-btn" id="findPrev" title="Anterior (Shift+F3)" aria-label="Anterior">↑</button>
+        <button class="icon-btn" id="findNext" title="Siguiente (F3)" aria-label="Siguiente">↓</button>
+        <button class="icon-btn" id="findClose" title="Cerrar (Esc)" aria-label="Cerrar">×</button>
+      </div>
+    </main>
+
+    <aside class="sidebar" id="sidebar" aria-label="Panel de Nexo">
+      <div class="sidebar-heading"><span class="panel-emblem"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H6L3 7v4l3 2-3 2v3l4 3h3V3m5 0h3l3 4v4l-3 2 3 2v3l-4 3h-3V3M7 8h3m4 0h3M7 16h3m4 0h3"/></svg></span><div><span class="eyebrow">NEXO INTELLIGENCE</span><h1 id="panelTitle">EVO MEMORY</h1></div>
+        <span class="local-badge"><span></span>Local</span><button class="icon-btn premium-button" id="pinSidebar" aria-label="Desfijar panel EVO" aria-pressed="true" title="Desfijar: mostrar el panel sobre la página"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 3 8 8-4 1-3 4-2-2-5 6 4-7-2-2 4-3z"/></svg></button><button class="icon-btn" id="closeSidebar" aria-label="Cerrar panel EVO" title="Cerrar panel">×</button></div>
+      <div class="sidebar-tabs" role="tablist" aria-label="Herramientas de Nexo" aria-orientation="vertical">
+        <span class="dock-brand" aria-hidden="true"><img src="../assets/identity/NEXO-Wormhole.png" alt="" /></span>
+        <button class="stab" data-panel="activity" id="panel-tab-activity" role="tab" aria-controls="panel-activity" aria-selected="false" tabindex="-1" title="Actividad" aria-label="Actividad"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="stab-label">Actividad</span></button>
+        <button class="stab" data-panel="understanding" id="panel-tab-understanding" role="tab" aria-controls="panel-understanding" aria-selected="false" tabindex="-1" title="Comprensión · ahorro de tokens" aria-label="Comprensión · ahorro de tokens"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 1v3m0 16v3M1 12h3m16 0h3"/></svg><span class="stab-label">Comprensión</span></button>
+        <button class="stab" data-panel="work" id="panel-tab-work" role="tab" aria-controls="panel-work" aria-selected="false" tabindex="-1" title="Expediente del objetivo" aria-label="Expediente del objetivo"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 3h16v18H4ZM8 7h8M8 12h8M8 17h5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span class="stab-label">Objetivo</span></button>
+        <button class="stab active" data-panel="memory" id="panel-tab-memory" role="tab" aria-controls="panel-memory" aria-selected="true" tabindex="0" title="EVO MEMORY" aria-label="EVO MEMORY"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M8 3H5v18h14V3h-3M8 3v6h8V3M8 15h8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="stab-label">Memoria</span></button>
+        <button class="stab" data-panel="history" id="panel-tab-history" role="tab" aria-controls="panel-history" aria-selected="false" tabindex="-1" title="Historial" aria-label="Historial"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6M3 3v6h6M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="stab-label">Historial</span></button>
+        <button class="stab" data-panel="bookmarks" id="panel-tab-bookmarks" role="tab" aria-controls="panel-bookmarks" aria-selected="false" tabindex="-1" title="Marcadores" aria-label="Marcadores"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="stab-label">Marcadores</span></button>
+        <button class="stab" data-panel="downloads" id="panel-tab-downloads" role="tab" aria-controls="panel-downloads" aria-selected="false" tabindex="-1" title="Descargas" aria-label="Descargas"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="stab-label">Descargas</span></button>
+        <button class="stab" data-panel="sites" id="panel-tab-sites" role="tab" aria-controls="panel-sites" aria-selected="false" tabindex="-1" title="Sitios" aria-label="Sitios"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="stab-label">Sitios</span></button>
+        <button class="stab" data-panel="settings" id="panel-tab-settings" role="tab" aria-controls="panel-settings" aria-selected="false" tabindex="-1" title="Ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7h16M4 17h16M8 3v8M16 13v8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="stab-label">Ajustes</span></button>
+        <button class="stab" data-panel="about" id="panel-tab-about" role="tab" aria-controls="panel-about" aria-selected="false" tabindex="-1" title="Acerca" aria-label="Acerca"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M12 11v6M12 7h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="stab-label">Acerca</span></button>
+      </div>
+
+      <section class="panel-view understanding-panel" data-panel="understanding" id="panel-understanding" role="tabpanel" aria-labelledby="panel-tab-understanding" tabindex="0"></section>
+
+      <section class="panel-view work-panel" data-panel="work" id="panel-work" role="tabpanel" aria-labelledby="panel-tab-work" tabindex="0"></section>
+
+      <section class="panel-view" data-panel="activity" id="panel-activity" role="tabpanel" aria-labelledby="panel-tab-activity" tabindex="0">
+        <div class="panel-intro"><p class="eyebrow">CONVERSACIONES, EN CLARO</p><h2>Todo bajo tu control.</h2><p>Tu actividad de IA, sin perder el foco.</p></div>
+        <div class="stats" id="stats">
+          <div class="stat"><b id="statMessages">0</b><span>mensajes del usuario</span></div>
+          <div class="stat"><b id="statResponses">0</b><span>respuestas de la IA</span></div>
+          <div class="stat"><b id="statInTokens">0</b><span>tokens de entrada *</span></div>
+          <div class="stat"><b id="statOutTokens">0</b><span>tokens de salida IA (estimados)</span></div>
+          <div class="stat"><b id="statInterventions">0</b><span>intervenciones</span></div>
+          <div class="stat"><b id="statTurnsCancelled">0</b><span>turnos cancelados</span></div>
+          <div class="stat"><b id="statTurnsFailed">0</b><span>turnos fallidos</span></div>
+          <div class="stat"><b id="statTurnsPerformed">0</b><span>turnos realizados</span></div>
+        </div>
+        <details class="technical-details"><summary>Cómo se mide tu actividad</summary>
+        <p class="note capture" id="captureLine">Captura: sin datos todavía.</p>
+        <p class="note" id="statsNote">
+          * Entrada: BPE local para GPT. Salida IA: estimación por palabras del texto
+          capturado (1 unidad por palabra), sin tokenizador. No es el consumo real de OpenAI. No incluye contenido no recibido. «Intervenciones» cuenta la
+          actividad: +1 al enviar un mensaje y +1 al recibir una respuesta.
+        </p>
+        </details>
+        <div class="panel-head">
+          <h2>Intervenciones</h2>
+          <button class="link" id="clearLog">Limpiar</button>
+        </div>
+        <ul class="log" id="log"></ul>
+      </section>
+
+
+
+      <section class="panel-view active" data-panel="memory" id="panel-memory" role="tabpanel" aria-labelledby="panel-tab-memory" tabindex="0">
+<p id="memoryDisabledNotice" class="note" role="status" hidden>EVO Memory desactivada. No se muestran ni se guardan recuerdos. Comprensión sigue activa. Los recuerdos anteriores no se borraron.</p>
+<nav class="memory-navigation" role="tablist" aria-label="Secciones de EVO MEMORY" aria-orientation="horizontal"><button class="active" id="memory-tab-conversation" role="tab" aria-selected="true" tabindex="0" aria-controls="memory-pane-conversation" data-memory-section="conversation">Conversación</button><button class="" id="memory-tab-saved" role="tab" aria-selected="false" tabindex="-1" aria-controls="memory-pane-saved" data-memory-section="saved">Historial</button><button class="" id="memory-tab-favorites" role="tab" aria-selected="false" tabindex="-1" aria-controls="memory-pane-favorites" data-memory-section="favorites">Favoritos</button></nav>
+<div class="memory-pane" id="memory-pane-conversation" role="tabpanel" aria-labelledby="memory-tab-conversation" tabindex="0">
+        <section class="chat-capture-card" aria-live="polite" aria-labelledby="chatCaptureTitle">
+          <div class="chat-capture-heading"><span class="capture-indicator" id="chatCaptureDot"></span><div><p class="eyebrow">CAPTURA EN VIVO</p><h2 id="chatCaptureTitle">Lectura de ChatGPT</h2></div></div>
+          <p class="chat-capture-status" id="chatCaptureStatus">Esperando una conversación de ChatGPT…</p>
+          <details class="capture-details"><summary>Detalle de lectura y registro local</summary>
+          <div class="chat-capture-stats">
+            <div><b id="chatCaptureCurrent">0</b><span>mensajes detectados ahora</span></div>
+            <div><b id="chatCaptureSaved">0</b><span>mensajes guardados</span></div>
+            <div><b id="chatCaptureConversations">0</b><span>conversaciones guardadas</span></div>
+          </div>
+          <p class="note" id="chatCaptureDetail">Abrí un chat de ChatGPT en NEXO. Se mostrarán aquí los mensajes que estén cargados en pantalla.</p>
+          </details>
+        </section>
+        <section class="memory-live" aria-labelledby="memoryLiveTitle">
+          <p class="eyebrow">MISMO TEXTO · EN VIVO</p><h2 id="memoryLiveTitle">Conversación de esta pestaña</h2>
+          <p class="note" id="memoryLiveStatus">Esperando mensajes renderizados…</p>
+          <ol class="repeat-list" id="memoryLiveConversation" aria-label="Conversación de ChatGPT en vivo"></ol>
+        </section>
+        </div>
+        <details class="memory-tools"><summary>Memoria de proyecto y continuidad</summary>
+        <div class="stats">
+          <div class="stat"><b id="memItems">0</b><span>memorias</span></div>
+          <div class="stat"><b id="memTokens">0</b><span>tokens guardados</span></div>
+          <div class="stat"><b id="memSaved">0 %</b><span>menos que pegar todo</span></div>
+        </div>
+
+        <form class="mem-search" id="memSearchForm">
+          <input id="memSearch" type="text" spellcheck="false" placeholder="Buscar en la memoria del proyecto…" />
+        </form>
+
+        <p class="note" id="memContext">Contexto del último envío: 0 tokens.</p>
+        <div class="mem-legend" id="memLegend"></div>
+        <ul class="memory-list" id="memoryList"></ul>
+
+        <div class="panel-head"><h2>Continuidad</h2></div>
+        <p class="note">
+          Las memorias destiladas son lo que EVO extrajo de la conversación (hechos, decisiones y
+          resúmenes llamados «episodios») — no un registro de mensajes ni de respuestas.
+          El paquete de continuidad es un texto plano con lo esencial del proyecto. Pegalo al
+          empezar una conversación en cualquier IA y seguís donde estabas.
+        </p>
+        <div class="mem-actions">
+          <button class="ghost" id="memHandoff">Generar paquete</button>
+          <button class="ghost" id="memCopy">Copiar</button>
+        </div>
+        <textarea class="mem-packet" id="memPacket" rows="6" spellcheck="false" placeholder="Acá aparece el paquete…"></textarea>
+        <div class="mem-actions">
+          <button class="ghost" id="memImport">Importar pegado</button>
+          <button class="ghost danger" id="memClear">Vaciar memoria</button>
+        </div>
+        <p class="note" id="memFile"></p>
+        </details>
+        <div class="memory-pane" id="memory-pane-saved" role="tabpanel" aria-labelledby="memory-tab-saved" tabindex="0" hidden>
+          <p class="pane-caption">TU REGISTRO LOCAL</p><h2 class="pane-title">Conversaciones</h2>
+        <details id="savedConversations"><summary>Conversaciones de ChatGPT guardadas</summary>
+          <p class="note">Sólo mensajes cargados en la página. Guardado local: hasta 50 conversaciones,
+            200 mensajes y 250 000 caracteres por conversación; 10 000 por mensaje. Los chats temporales no se guardan.</p>
+          <ul class="memory-list" id="memoryConversations"></ul>
+        </details>
+
+        </div>
+        <div class="memory-pane" id="memory-pane-favorites" role="tabpanel" aria-labelledby="memory-tab-favorites" tabindex="0" hidden>
+          <p class="pane-caption">A MANO, SIEMPRE</p><h2 class="pane-title">Tus favoritos</h2>
+          <p class="note">Marcadores del navegador. No son conversaciones favoritas.</p>
+          <ul class="nav-list" id="memoryFavorites"></ul>
+          <button class="ghost premium-button" id="manageMemoryFavorites">Administrar marcadores →</button>
+        </div>
+        <footer class="memory-persistence" id="memoryPersistence" data-state="idle"><span class="persistence-icon" aria-hidden="true">◇</span><div><b id="memoryPersistenceTitle">Sin lectura activa</b><p id="memoryPersistenceDetail">El registro local se consulta al abrir el panel.</p></div></footer>
+
+      </section>
+
+      <section class="panel-view" data-panel="history" id="panel-history" role="tabpanel" aria-labelledby="panel-tab-history" tabindex="0">
+        <form class="mem-search" id="historySearchForm">
+          <input id="historySearch" type="text" spellcheck="false" placeholder="Buscar en el historial…" />
+        </form>
+        <div class="panel-head">
+          <h2>Historial</h2>
+          <select class="mini-select" id="historyRange" title="Qué borrar">
+            <option value="hour">última hora</option>
+            <option value="day">último día</option>
+            <option value="week">última semana</option>
+            <option value="month">último mes</option>
+            <option value="all">todo</option>
+          </select>
+          <button class="link danger" id="historyClear">Borrar</button>
+        </div>
+        <ul class="nav-list" id="historyList"></ul>
+        <p class="note" id="historyNote"></p>
+      </section>
+
+      <section class="panel-view" data-panel="bookmarks" id="panel-bookmarks" role="tabpanel" aria-labelledby="panel-tab-bookmarks" tabindex="0">
+        <form class="mem-search" id="bookmarkSearchForm">
+          <input id="bookmarkSearch" type="text" spellcheck="false" placeholder="Buscar en marcadores…" />
+        </form>
+        <div class="panel-head">
+          <h2>Marcadores</h2>
+          <button class="ghost" id="bookmarkCurrent">Marcar esta página</button>
+        </div>
+        <ul class="nav-list" id="bookmarkList"></ul>
+      </section>
+
+      <section class="panel-view" data-panel="downloads" id="panel-downloads" role="tabpanel" aria-labelledby="panel-tab-downloads" tabindex="0">
+        <div class="panel-head">
+          <h2>Descargas</h2>
+          <button class="link" id="downloadsClear">Limpiar terminadas</button>
+        </div>
+        <ul class="nav-list" id="downloadList"></ul>
+        <p class="note" id="downloadNote"></p>
+      </section>
+
+      <section class="panel-view" data-panel="sites" id="panel-sites" role="tabpanel" aria-labelledby="panel-tab-sites" tabindex="0">
+        <div class="panel-head"><h2>Sitio actual</h2></div>
+        <p class="note" id="siteHost">Ninguna página abierta</p>
+        <div class="zoom-row">
+          <button class="ghost" id="zoomOut" title="Alejar">−</button>
+          <span class="zoom-value" id="zoomValue">100 %</span>
+          <button class="ghost" id="zoomIn" title="Acercar">+</button>
+          <button class="link" id="zoomReset">restablecer</button>
+        </div>
+        <ul class="perm-list" id="permissionList"></ul>
+
+        <div class="panel-head"><h2>Datos guardados</h2></div>
+        <p class="note">
+          Estos controles borran datos locales de navegación. EVO MEMORY y los expedientes se eliminan por separado; para un expediente, usá Objetivo → Control.
+        </p>
+        <div class="danger-grid">
+          <button class="ghost" id="clearHistoryData">Historial</button>
+          <button class="ghost" id="clearCookies">Cookies y sesiones</button>
+          <button class="ghost" id="clearBookmarksData">Marcadores</button>
+          <button class="ghost-danger" id="clearEverything">Borrar datos de navegación</button>
+        </div>
+        <p class="note" id="profileNote"></p>
+      </section>
+
+      <section class="panel-view" data-panel="settings" id="panel-settings" role="tabpanel" aria-labelledby="panel-tab-settings" tabindex="0">
+        <div class="mem-actions"><button class="ghost premium-button" id="keyboardSettings">Atajos e idiomas</button><button class="ghost" id="toolbarSettings">Personalizar barra</button></div>
+        <div class="panel-head"><h2>Mediación</h2></div>
+        <label class="switch-row">
+          <span>Motor activo</span>
+          <input type="checkbox" id="setEnabled" checked />
+        </label>
+
+        <label class="row">
+          <span>Protocolo anti-bucle</span>
+          <select id="setProtocol">
+            <option value="off">desactivado</option>
+            <option value="suave">suave</option>
+            <option value="equilibrado">equilibrado</option>
+            <option value="agresivo">agresivo</option>
+          </select>
+        </label>
+
+        <label class="row">
+          <span>Umbral de corte</span>
+          <select id="setThreshold">
+            <option value="low">bajo (corta antes)</option>
+            <option value="medium">medio</option>
+            <option value="high">alto (solo bucles claros)</option>
+          </select>
+        </label>
+
+        <label class="row">
+          <span>Continuación automática</span>
+          <input type="checkbox" id="setAutoContinue" />
+        </label>
+
+        <label class="row">
+          <span>Presupuesto de contexto</span>
+          <input type="number" id="setBudget" min="1000" max="128000" step="500" />
+        </label>
+
+        <label class="row">
+          <span>Turnos recientes sin tocar</span>
+          <input type="number" id="setKeepRecent" min="2" max="40" step="1" />
+        </label>
+
+        <div class="panel-head"><h2>Apariencia · menú derecho</h2></div>
+        <label class="row"><span>Comportamiento del menú derecho</span><select id="rightMenuMode"><option value="auto">Automático · expandir al pasar el mouse</option><option value="fixed">Fijo · siempre expandido</option></select></label>
+        <p class="note">El modo automático también se expande al enfocar con el teclado. El menú izquierdo se inicia cerrado y se abre con NEXO Wormhole.</p>
+        <div class="panel-head"><h2>Sitios de IA</h2></div>
+        <ul class="sites-list" id="sitesList"></ul>
+
+        <div class="panel-head"><h2>Privacidad</h2></div>
+        <p class="note">Todo el análisis ocurre en esta máquina. Nexo no envía, copia ni resume tus conversaciones a ningún servidor.</p>
+        <button class="ghost danger" id="resetSettings">Restablecer ajustes</button>
+      </section>
+
+      <section class="panel-view" data-panel="about" id="panel-about" role="tabpanel" aria-labelledby="panel-tab-about" tabindex="0">
+        <div class="about">
+          <h2>Nexo</h2>
+          <p class="version" id="version">v0.1.33</p>
+          <p>
+            Navegador basado en Chromium que se sienta entre vos y los chatbots: reescribe el
+            mensaje antes de enviarlo y filtra la respuesta antes de mostrarla.
+          </p>
+          <h3>Cómo interviene</h3>
+          <ul>
+            <li><b>Antes de enviar:</b> limpia repeticiones, detecta instrucciones contradictorias, resuelve referencias sueltas y añade un protocolo anti-bucle.</li>
+            <li><b>Antes de mostrar:</b> retiene unos caracteres, detecta repeticiones por período y corta la generación en el punto exacto.</li>
+            <li><b>Después:</b> repara markdown, cierra bloques de código y ofrece continuar sin repetir.</li>
+            <li><b>Entre conversaciones:</b> EVO MEMORY destila objetivos, decisiones, restricciones, pendientes y problemas, y los devuelve cuando hacen falta.</li>
+          </ul>
+          <h3>Atajos</h3>
+          <ul class="shortcut-list">
+            <li><kbd>Ctrl</kbd>+<kbd>T</kbd> pestaña nueva · <kbd>Ctrl</kbd>+<kbd>W</kbd> cerrar · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> reabrir</li>
+            <li><kbd>Ctrl</kbd>+<kbd>L</kbd> barra de direcciones · <kbd>Ctrl</kbd>+<kbd>F</kbd> buscar en página</li>
+            <li><kbd>Ctrl</kbd>+<kbd>H</kbd> historial · <kbd>Ctrl</kbd>+<kbd>J</kbd> descargas · <kbd>Ctrl</kbd>+<kbd>D</kbd> marcar</li>
+            <li><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd> zoom · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> panel EVO</li>
+          </ul>
+          <p class="note">Sala de pruebas: <button class="link" id="openDemo">abrir</button></p>
+        </div>
+      </section>
+    </aside>
+    <footer class="system-bar" aria-label="Estado de Nexo"><span class="system-brand"><i></i>NEXO <span id="statusVersion">—</span></span><span class="system-separator"></span><span class="system-state">Motor local</span><span class="system-telemetry" title="Este navegador no expone telemetría de consumo a la interfaz">CPU — <span>RAM —</span><span>GPU —</span></span><span class="system-connection" id="systemConnection">Estado de red no disponible</span><button class="system-performance" data-open-panel="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 2-9 12h7l-2 8 9-12h-7z"/></svg>Rendimiento</button><button class="icon-btn" data-open-panel="downloads" aria-label="Descargas" title="Descargas">↓</button></footer>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

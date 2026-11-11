@@ -1,0 +1,155 @@
+# Compila Nexo para Windows en un runner de GitHub y deja el ZIP para descargar.
+#
+# Se usa cuando la máquina donde está el repo no puede bajar Electron (por
+# ejemplo, un entorno sin salida a las releases de GitHub): acá la descarga la
+# hace el runner, y el resultado queda como artefacto del flujo.
+
+name: Compilar para Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'arena/**'
+    # Las rutas no se evalúan en los push de etiquetas: ahí siempre compila.
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'test/**'
+      - 'build/**'
+      - 'demo/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/compilar-windows.yml'
+    tags:
+      - 'v*'
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  checks: write
+  issues: write
+
+jobs:
+  compilar:
+    name: Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Bajar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificación automática
+        run: npm run verify
+
+      - name: Conversación en Electron real (fixture HTTPS sin red)
+        run: node node_modules/electron/cli.js scripts/probes/repetition-electron.cjs
+
+      - name: Referencia de rendimiento
+        run: node scripts/bench.mjs --json-out=ci-bench.json
+
+      - name: Empaquetar
+        run: npm run dist:win
+
+      - name: Prueba de humo del ejecutable
+        run: node scripts/humo.mjs
+
+      # Los números de arranque y memoria de Windows quedan en un issue fijo,
+      # que es la única forma de compararlos entre compilaciones.
+      - name: Publicar el informe de rendimiento
+        if: always()
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/reportar-rendimiento.mjs --publicar
+
+      - name: Resumen
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem dist\*.zip | Select-Object -First 1
+          $hash = (Get-FileHash $zip.FullName -Algorithm SHA256).Hash.ToLower()
+          $mb = [math]::Round($zip.Length / 1MB, 1)
+          "ZIP: $($zip.Name) · $mb MB · sha256 $hash" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY
+          if (Test-Path ci-humo.txt) {
+            "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            "### Arranque y consumo en Windows" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            Get-Content ci-humo.txt | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          }
+
+      - name: Conservar evidencia de validación
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexo-validacion
+          path: |
+            ci-repetition.json
+            ci-bench.json
+            ci-humo.txt
+            ci-ui-*.png
+          if-no-files-found: warn
+
+      - name: Dejar el ZIP como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexo-win32-x64
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Adjuntarlo a la release (sólo en etiquetas v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
+
+      # Si las pruebas fallan en Windows y no en Linux, el log del flujo no es
+      # legible desde cualquier entorno; el detalle se publica como check run,
+      # que sí se lee por la API.
+      - name: Publicar el diagnóstico del fallo
+        if: failure()
+        shell: pwsh
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node --test --test-reporter=tap *> ci-fallo.txt
+          $texto = Get-Content ci-fallo.txt -Raw
+          if ($null -eq $texto) { $texto = 'sin salida' }
+          if (Test-Path ci-humo.txt) {
+            $texto = "===== prueba de humo =====`n" + (Get-Content ci-humo.txt -Raw) + "`n===== pruebas =====`n" + $texto
+          }
+          if (Test-Path ci-repetition.json) {
+            $texto = $texto + "`n===== conversación Electron =====`n" + (Get-Content ci-repetition.json -Raw)
+          }
+          if ($texto.Length -gt 60000) { $texto = $texto.Substring($texto.Length - 60000) }
+          $cuerpo = @{
+            name      = 'diagnostico'
+            head_sha  = '${{ github.sha }}'
+            status    = 'completed'
+            conclusion = 'neutral'
+            output    = @{
+              title   = 'Salida de las pruebas en Windows'
+              summary = 'Detalle del fallo de la verificación automática'
+              text    = $texto
+            }
+          } | ConvertTo-Json -Depth 6
+          Invoke-RestMethod -Method Post `
+            -Uri 'https://api.github.com/repos/${{ github.repository }}/check-runs' `
+            -Headers @{ Authorization = "Bearer $env:TOKEN"; Accept = 'application/vnd.github+json' } `
+            -Body $cuerpo -ContentType 'application/json' | Out-Null
