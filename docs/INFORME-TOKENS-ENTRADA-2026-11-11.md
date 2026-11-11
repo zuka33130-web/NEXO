@@ -312,7 +312,35 @@ Limitación honesta: el probe necesita Electron real y no se puede ejecutar en e
 entorno; se corrigió contra los selectores y textos que existen hoy en
 `src/ui/shell/index.html` y `app.js`, y su resultado se ve en el flujo de GitHub.
 
-## 11. Entrega
+## 11. Validación en CI: compilación de Windows en verde
+
+El flujo «Compilar para Windows» (`.github/workflows/compilar-windows.yml`) corre
+en un runner Windows x64 real y es el único camino de empaquetado disponible
+desde este entorno. Estado del último run:
+
+- Run [42957509711](https://github.com/zuka33130-web/NEXO/actions/runs/42957509711),
+  commit `a5a5897` de la rama `arena/52fbad83-nexo`: **todos los pasos en verde**.
+- Pasos: `Instalar dependencias` → `Verificación automática` (suite completa en
+  Windows) → `Conversación en Electron real (fixture HTTPS sin red)` →
+  `Referencia de rendimiento` → `Empaquetar` → `Prueba de humo del ejecutable` →
+  `Publicar el informe de rendimiento` → `Conservar evidencia de validación` →
+  `Dejar el ZIP como artefacto`.
+- Artefactos publicados por ese run:
+  - `Nexo-win32-x64` — el ejecutable empaquetado (159.418.981 bytes).
+  - `Nexo-validacion` — evidencia de validación (455.055 bytes).
+  Se descargan desde la página del run; este entorno no puede bajarlos porque el
+  almacenamiento de artefactos de GitHub no está entre los hosts permitidos.
+
+Qué pruebas corre el paso de Electron, todas en verde en ese run: lectura
+literal de ambos roles en el panel real, deduplicación del DOM, actualización con
+streaming, envío observado sin contar el historial como salida, parciales que
+suman sus tokens BPE sin contar una respuesta nueva por fragmento, cierre con una
+respuesta y cinco tokens, transcripción persistente en el archivo de memoria,
+lector aislado que sobrevive a la página alterando sus propias APIs y
+reemplazando el `body`, reanudación tras `pagehide`/`pageshow`, respaldo directo
+del DOM con aviso de RAM, y comportamiento de la pestaña fijada y del viewport.
+
+## 12. Entrega
 
 - ZIP del proyecto: `Nexo-0.1.33-conteo-tokens-2026-11-11.zip`, con
   `build/inject.js` regenerado e incluido, sin `node_modules` ni `.git`.
@@ -320,6 +348,11 @@ entorno; se corrigió contra los selectores y textos que existen hoy en
   `SHA256.txt` que acompaña al ZIP (no puede ir dentro del propio ZIP sin cambiar
   su hash).
 - Comparación con el tokenizador: §6.
-- Limitación que sigue en pie: el arranque real de Electron, `dist:win` y el
-  checklist manual de `docs/NAVEGADOR.md` no se pueden ejecutar en este entorno;
+- Binario de Windows: se obtiene del artefacto `Nexo-win32-x64` del run
+  [42957509711](https://github.com/zuka33130-web/NEXO/actions/runs/42957509711).
+  Este entorno no puede descargar el binario de Electron (certificado TLS no
+  confiable y almacenamiento de artefactos fuera de los hosts permitidos), por eso
+  se compila en el runner de GitHub.
+- Limitación que sigue en pie: el checklist manual de `docs/NAVEGADOR.md` (uso
+  con una cuenta real de ChatGPT) no se puede ejecutar ni aquí ni en CI;
   `npm run verify` lo declara explícitamente.
