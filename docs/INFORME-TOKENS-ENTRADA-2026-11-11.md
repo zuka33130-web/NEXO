@@ -278,7 +278,36 @@ Consecuencias declaradas:
 - La estimación de los proveedores sin tokenizador se conserva y sigue siendo la
   documentada en `docs/FIX-TOKENS-SALIDA.md`.
 
-## 10. Entrega
+## 10. Por qué fallaba la compilación (CI de Windows)
+
+La compilación en GitHub Actions estaba en rojo por dos causas distintas, y las
+dos están corregidas:
+
+1. **Regresión mía, en `npm run verify`.** El fixture del caso real se leía con
+   `readFileSync` y, en un checkout de Windows con `core.autocrlf=true`, git
+   convertía sus 10 saltos de línea a CRLF: el texto pasaba de 933 a 943 unidades
+   UTF-16 y la prueba del caso real fallaba (`943 !== 933`). Se agregó
+   `.gitattributes` con `test/fixtures/*.txt text eol=lf` y las dos pruebas
+   normalizan CRLF→LF por si el clon ya venía convertido. Comprobado: el mismo
+   archivo con CRLF mide 943 y normalizado 933, con 215 tokens.
+2. **Fallo previo, ya presente en `main`.** El paso «Conversación en Electron
+   real» ejecuta `scripts/probes/repetition-electron.cjs`, que seguía apuntando al
+   panel de repetición que ya no existe: hacía `click()` sobre
+   `.stab[data-panel="repetition"]` (nada que clickear → excepción), leía
+   `#repetitionList` y `#repetitionDiagnostic`, y buscaba `print-label` /
+   «Vos: 1 · ChatGPT: 1». Se reescribió contra la interfaz actual: pestaña
+   `memory`, lista `#memoryLiveConversation` y diagnóstico de la tarjeta de
+   captura (`#chatCaptureCurrent` = 2 turnos y
+   `#chatCaptureDetail` = «1 mensajes tuyos y 1 respuestas de ChatGPT»), con EVO
+   MEMORY activa porque la lectura en vivo sólo se muestra en ese modo. Las
+   cifras de tokens del probe no cambiaron: `«  uno»`, `«  uno dos»` y
+   `«  uno dos tres\n»` dan 1, 2 y 3 tokens con el BPE, igual que antes.
+
+Limitación honesta: el probe necesita Electron real y no se puede ejecutar en este
+entorno; se corrigió contra los selectores y textos que existen hoy en
+`src/ui/shell/index.html` y `app.js`, y su resultado se ve en el flujo de GitHub.
+
+## 11. Entrega
 
 - ZIP del proyecto: `Nexo-0.1.33-conteo-tokens-2026-11-11.zip`, con
   `build/inject.js` regenerado e incluido, sin `node_modules` ni `.git`.

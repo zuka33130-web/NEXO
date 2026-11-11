@@ -32,8 +32,18 @@ import { countGptTokens } from '../src/core/gptTokens.cjs';
 import { countOutputTokens, countTokensForProvider, tokenCounterForProvider } from '../src/main/tokens.js';
 import { estimateOutputTokens, estimateTokens } from '../src/core/text.js';
 
-/** Texto real de la entrega, guardado byte a byte (sin salto de línea final). */
-const CASO_REAL = readFileSync(new URL('./fixtures/caso-real-2026-11-11.txt', import.meta.url), 'utf8');
+/**
+ * Texto real de la entrega (sin salto de línea final).
+ *
+ * Se lee tal cual, salvo los saltos CRLF: en un checkout de Windows con
+ * `core.autocrlf=true` git convierte LF en CRLF y el fixture dejaría de ser el
+ * texto medido (933 → 943 unidades). `.gitattributes` lo impide en los clones
+ * nuevos; esta normalización protege a los clones que ya venían convertidos y
+ * no cambia nada cuando el archivo está en LF, que es como se midió.
+ */
+const leerCasoReal = () =>
+  readFileSync(new URL('./fixtures/caso-real-2026-11-11.txt', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const CASO_REAL = leerCasoReal();
 const TEXTO_LARGO = `${'La respuesta larga sigue. '.repeat(420)}FINAL`;
 
 const O200K = [

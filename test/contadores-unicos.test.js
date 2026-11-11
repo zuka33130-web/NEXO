@@ -21,8 +21,12 @@ import { test } from 'node:test';
 import { countTokens as countO200k } from 'gpt-tokenizer';
 import { estimateTokens } from '../src/core/text.js';
 
-/** Texto real de la entrega (§9): 933 caracteres, 215 tokens o200k. */
-const CASO_REAL = readFileSync(new URL('./fixtures/caso-real-2026-11-11.txt', import.meta.url), 'utf8');
+/**
+ * Texto real de la entrega (§9): 933 caracteres, 215 tokens o200k.
+ * Los CRLF de un checkout de Windows se normalizan a LF (ver `.gitattributes`).
+ */
+const CASO_REAL = readFileSync(new URL('./fixtures/caso-real-2026-11-11.txt', import.meta.url), 'utf8')
+  .replace(/\r\n/g, '\n');
 
 process.env.NEXO_NETRESP_MS = '1';
 

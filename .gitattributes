@@ -1,0 +1,7 @@
+# El fixture del caso real es la entrada exacta de una medición de tokens.
+#
+# En Windows, un checkout con `core.autocrlf=true` convertiría sus saltos de
+# línea a CRLF y el texto dejaría de ser el de referencia: el mismo contenido
+# pasaría de 933 a 943 unidades UTF-16 y los tokens cambiarían. Se guarda y se
+# extrae siempre con LF.
+test/fixtures/*.txt text eol=lf
