@@ -57,7 +57,10 @@ app.whenReady().then(() => {
   // de ajustes, la capa descarta el snapshot en vivo y la lista queda vacía.
   await shell.executeJavaScript(`nexo.setSettings({enabled:true,memory:{enabled:true}})`);
   await until(() => shell.executeJavaScript("nexo.getSettings().then(s=>s.enabled===true&&s.memory&&s.memory.enabled===true)"), 'memoria activa antes de navegar');
-  await shell.executeJavaScript(`(async()=>{document.getElementById('omnibox').value='https://chatgpt.com/c/fixture';document.getElementById('omniboxForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));document.querySelector('.stab[data-panel="memory"]').click();})()`);
+  // Abrir el panel desde el rail garantiza el estado real de la barra lateral:
+  // la shell sólo refresca sus paneles con `.browser.with-sidebar`, y un clic en
+  // la pestaña con la barra cerrada cambia clases pero no lee nada.
+  await shell.executeJavaScript(`(async()=>{document.getElementById('omnibox').value='https://chatgpt.com/c/fixture';document.getElementById('omniboxForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));document.querySelector('.rail-item[data-open-panel="memory"]').click();})()`);
   await until(() => webContents.getAllWebContents().some(w => w.getType() === 'webview' && w.getURL() === 'https://chatgpt.com/c/fixture'), 'webview HTTPS cargada');
   const guest = webContents.getAllWebContents().find(w => w.getType() === 'webview' && w.getURL() === 'https://chatgpt.com/c/fixture');
   const liveRoles = () => shell.executeJavaScript('document.querySelectorAll("#memoryLiveConversation .repeat-message").length===2');
@@ -65,7 +68,7 @@ app.whenReady().then(() => {
     // Si el aviso del lector llegó con el panel inactivo, el refresco lo reintenta:
     // cambiar de pestaña y volver ejecuta el mismo refresco que un clic real.
     for (let i = 0; i < 100 && !(await liveRoles()); i++) {
-      if (i % 20 === 19) await shell.executeJavaScript(`document.querySelector('.stab[data-panel="activity"]').click();document.querySelector('.stab[data-panel="memory"]').click();`);
+      if (i % 20 === 19) await shell.executeJavaScript(`document.querySelector('.rail-item[data-open-panel="activity"]').click();document.querySelector('.rail-item[data-open-panel="memory"]').click();`);
       await pause(100);
     }
     if (!(await liveRoles())) {
@@ -94,7 +97,7 @@ app.whenReady().then(() => {
     report.checks.push('texto literal, ambos roles y deduplicación del DOM real');
     await guest.executeJavaScript(`document.querySelector('.markdown').textContent+='Respuesta final';`);
     await until(() => shell.executeJavaScript('document.querySelectorAll("#memoryLiveConversation .repeat-text")[1]?.textContent.endsWith("Respuesta final")'), 'streaming DOM actualiza panel sin duplicados');
-    await shell.executeJavaScript(`(async()=>{await nexo.setSettings({enabled:true,memory:{enabled:true}});document.querySelector('.stab[data-panel="memory"]').click();})()`);
+    await shell.executeJavaScript(`(async()=>{await nexo.setSettings({enabled:true,memory:{enabled:true}});document.querySelector('.rail-item[data-open-panel="memory"]').click();})()`);
     await until(() => shell.executeJavaScript('document.querySelectorAll("#memoryLiveConversation .repeat-text").length===2'), 'Memoria muestra la misma conversación en vivo');
     await guest.executeJavaScript(`window.postMessage({__nexo:'event',type:'outgoing',payload:{host:'chatgpt.com',site:'chatgpt',source:'composer',messageId:'render-fixture-send',tokenText:'pregunta nueva',chars:14}},'*');const u=document.createElement('article');u.setAttribute('data-message-author-role','user');u.setAttribute('data-message-id','u2');u.textContent='pregunta nueva';document.querySelector('main').append(u);`);
     await until(() => shell.executeJavaScript('document.querySelectorAll("#memoryLiveConversation .repeat-text").length===3'), 'envío observado sin contar historial como salida');
@@ -111,7 +114,7 @@ app.whenReady().then(() => {
     const disk = JSON.parse(readFileSync(memoryFile, 'utf8'));
     if (!disk.conversations.some(c=>c.turns.some(t=>t.id==='a2' && t.content==='  uno dos tres\n'))) throw Error('El archivo de memoria no contiene el texto literal');
     report.checks.push('texto literal confirmado también leyendo el archivo de memoria');
-    await shell.executeJavaScript(`document.querySelector('.stab[data-panel="memory"]').click()`);
+    await shell.executeJavaScript(`document.querySelector('.rail-item[data-open-panel="memory"]').click()`);
     // Las APIs del mundo principal no deben controlar el lector aislado.
     await guest.executeJavaScript(`delete window.__nexo; Document.prototype.querySelectorAll=function(){throw Error('API alterada por la página de prueba');};const body=document.createElement('body');body.innerHTML='<article data-turn="assistant"><pre class="markdown">GPT tras reemplazar body</pre></article>';document.body.replaceWith(body);`);
     await until(() => shell.executeJavaScript('document.querySelectorAll("#memoryLiveConversation .repeat-text").length===1 && document.querySelector("#memoryLiveConversation .repeat-text").textContent==="GPT tras reemplazar body"'), 'lector aislado sobrevive APIs de página alteradas y body sustituido');
@@ -122,7 +125,7 @@ app.whenReady().then(() => {
     suppressAutomaticSnapshot = true;
     await shell.executeJavaScript(`document.getElementById('omnibox').value='https://chatgpt.com/c/direct-fallback-only';document.getElementById('omniboxForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));`);
     await until(() => guest.getURL() === 'https://chatgpt.com/c/direct-fallback-only' && !guest.isLoading(), 'documento nuevo para respaldo directo');
-    await shell.executeJavaScript(`document.querySelector('.stab[data-panel="memory"]').click()`);
+    await shell.executeJavaScript(`document.querySelector('.rail-item[data-open-panel="memory"]').click()`);
     await until(() => shell.executeJavaScript(`document.getElementById('memoryLiveConversation').dataset.strategy==='direct-console-injection' && document.querySelectorAll('#memoryLiveConversation .repeat-text').length===2`), 'respaldo executeJavaScript muestra ambos roles sin snapshot automático');
     const directText = await guest.executeJavaScript(`[...document.querySelectorAll('main h4')].map(h=>h.nextElementSibling.innerText)`);
     const displayed = await shell.executeJavaScript(`[...document.querySelectorAll('#memoryLiveConversation .repeat-text')].map(n=>n.textContent)`);
