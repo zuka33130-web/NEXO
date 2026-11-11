@@ -638,6 +638,8 @@ function registerIpc() {
           conversationId: payload?.conversationId || null,
           chars,
           tokens: countOutputTokens(String(payload?.text || ''), payload?.model || '', host),
+          // bpe = diccionario del modelo; estimate = estimación por palabra.
+          tokensSource: tokenCounterForProvider(host),
           stopped: Boolean(payload?.stopped),
           truncated: Boolean(payload?.truncated),
         },
@@ -1720,6 +1722,7 @@ app.whenReady().then(async () => {
               paired: Boolean(event.paired),
               chars,
               tokens: countOutputTokens(String(capture.text || ''), capture.model || '', capture.host || ''),
+              tokensSource: tokenCounterForProvider(capture.host || ''),
               conversationId: capture.conversationId || null,
             },
             ts: Date.now(),

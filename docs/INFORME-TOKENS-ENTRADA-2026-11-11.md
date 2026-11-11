@@ -1,8 +1,10 @@
-# Conteo de tokens de entrada con el BPE real — informe de la corrección
+# Conteo de tokens con el BPE real — informe de la corrección
 
 Fecha: 2026-11-11 · Rama de trabajo: `arena/52fbad83-nexo` (base `01ee052`)
-Alcance: **tokens de entrada**. Los tokens de salida, la lectura de respuestas y
-EVO MEMORY quedan exactamente como estaban (ver §8).
+Alcance: **tokens de entrada y de salida**. La lectura de respuestas y EVO MEMORY
+quedan exactamente como estaban (ver §8). Los tokens de salida pasan de una
+estimación por palabra al BPE del modelo donde hay tokenizador (§10), por
+decisión explícita del usuario en esta misma sesión.
 
 ---
 
@@ -82,6 +84,14 @@ duplicó: `src/main/tokens.js` sólo decide *si* hay tokenizador para el proveed
   `countTokensForProvider(text, model, provider)`: BPE para `chatgpt`/`openai`,
   estimación de siempre para el resto. `countOutputTokens` no se tocó.
 
+### `src/main/engine.js` y los registros de respuesta (tokens de salida)
+
+- `#outputTokens()` ya recibía `model` y `provider` y los descartaba: ahora los
+  pasa a `countOutputTokens`, y la rama `dom-render` de `#mergeResponse` (línea
+  700) dejó de omitirlos.
+- `main.js` declara `tokensSource` también en los dos registros de respuesta
+  (`incoming`, línea 642, y captura CDP, línea 1725). Detalle en §9.
+
 ### Archivos auditados sin cambios necesarios
 
 - `src/core/gptTokens.cjs`: ya implementaba la selección de codificación correcta
@@ -109,11 +119,11 @@ Así las pruebas afirman dos cosas que un número solo no demuestra:
 
 ## 5. Pruebas agregadas
 
-Tres archivos nuevos (25 pruebas). Ninguna prueba existente se borró ni se relajó.
+Tres archivos nuevos (26 pruebas). Ninguna prueba existente se borró; las que fijaban la cuenta de palabras en la salida se actualizaron a la nueva regla (§10).
 
 | Archivo | Pruebas | Qué cubre |
 |---------|---------|-----------|
-| `test/tokens-bpe-oficial.test.js` | 7 | valores exactos contra referencia (texto simple, español, emojis, espacios, saltos, tabulaciones, controles, unicode compuesto), texto largo de 10 925 caracteres, caso real, selección `o200k`/`cl100k` por modelo, ausencia de estimación cuando hay tokenizador, vacíos |
+| `test/tokens-bpe-oficial.test.js` | 8 | valores exactos contra referencia (texto simple, español, emojis, espacios, saltos, tabulaciones, controles, unicode compuesto), texto largo de 10 925 caracteres, caso real, selección `o200k`/`cl100k` por modelo, ausencia de estimación cuando hay tokenizador, vacíos |
 | `test/capa-texto-original.test.js` | 7 | la capa real sobre `build/inject.js` en un contexto de navegador: espacios, saltos, acentos/emojis, gesto de envío sin recorte, cuadro sólo espacios, prompt DPU vacío, cuerpo sin texto |
 | `test/contadores-unicos.test.js` | 11 | red y CDP con el tokenizador instrumentado: texto exacto, una llamada por mensaje, deduplicación entre capturadores, dos mensajes idénticos consecutivos, mensajes vacíos, acumulación del total, igualdad de las tres rutas, proveedor sin tokenizador, caso real por red y por CDP, salida y EVO MEMORY intactos |
 
@@ -201,10 +211,10 @@ Todas ejecutadas en este árbol, con `npm ci --ignore-scripts` y
 
 | Comando | Resultado real |
 |---------|----------------|
-| `node --test test/tokens-bpe-oficial.test.js` | 7 pruebas, 7 pasan, 0 fallan |
+| `node --test test/tokens-bpe-oficial.test.js` | 8 pruebas, 8 pasan, 0 fallan |
 | `node --test test/capa-texto-original.test.js` | 7 pruebas, 7 pasan, 0 fallan |
 | `node --test test/contadores-unicos.test.js` | 11 pruebas, 11 pasan, 0 fallan |
-| `npm test` (suite completa) | **832 pruebas, 831 pasan, 1 omitida, 0 fallan** |
+| `npm test` (suite completa) | **833 pruebas, 832 pasan, 1 omitida, 0 fallan** |
 | `npm run verify` | empaquetado de la capa ✔ · pruebas automatizadas ✔ · «Verificación automática OK» |
 | `node scripts/build-inject.mjs` | `inject.js listo · 53.7 kB (19.3 kB gzip) · 11 módulos` |
 
@@ -216,9 +226,9 @@ La prueba omitida es la que ya existía y depende del binario de Electron
 - **EVO MEMORY**: no se tocó ni una línea de `src/memory/**` ni de los receptores
   de memoria. Prueba nueva: un snapshot de conversación con espacios, saltos y
   tabulaciones se guarda **byte a byte** y no mueve ningún contador.
-- **Tokens de salida**: `countOutputTokens` sigue siendo la misma estimación de
-  siempre (una unidad por palabra capturada). Prueba nueva: una respuesta de ocho
-  palabras suma exactamente 8, y las respuestas no cambian de cifra.
+- **Tokens de salida**: cuentan con el BPE del modelo en ChatGPT/OpenAI y con la
+  estimación de siempre —declarada como tal— donde no hay tokenizador (§10). No
+  se mezclan con la entrada: se verifican por separado.
 - **Lectura de respuestas**: intacta en las tres rutas; la única modificación de
   `cdp.js` está en la anotación del mensaje del usuario, no en la captura de la
   respuesta (las pruebas de respuesta y de memoria siguen pasando).
@@ -227,13 +237,47 @@ La prueba omitida es la que ya existía y depende del binario de Electron
 - **Datos y archivos**: no se borró ni se renombró ningún archivo, ajuste,
   registro ni prueba. Las pruebas existentes no se modificaron; sólo se agregaron
   tres archivos de prueba y un fixture.
-- **Interfaz**: sin cambios. El único dato nuevo es `tokensSource` en el registro
-  (`bpe`/`estimate`), un metadato que ya se enviaba en los eventos.
+- **Interfaz**: sin cambios de código. El único dato nuevo es `tokensSource` en
+  el registro de envíos y de respuestas (`bpe`/`estimate`), un metadato que el
+  panel ya recibía en los eventos.
 
-## 9. Entrega
+## 9. Tokens de salida: de «una por palabra» al BPE del modelo
 
-- ZIP del proyecto: `Nexo-0.1.33-conteo-tokens-final.zip` (249 entradas,
-  `build/inject.js` regenerado e incluido, sin `node_modules` ni `.git`).
+Decisión del usuario en esta sesión: la salida se cuenta con el tokenizador
+donde exista y se marca la estimación donde no.
+
+- **`src/main/tokens.js`**: `countOutputTokens(text, model, provider)` usa
+  `countGptTokens` para `chatgpt`/`openai` (o200k/cl100k según el modelo) y
+  `estimateOutputTokens` para el resto. Si el diccionario no carga, cae en la
+  estimación en vez de romper el conteo: la respuesta se cuenta igual.
+- **`src/main/engine.js`**: `#outputTokens()` ya recibía modelo y proveedor y los
+  descartaba; ahora los pasa al contador. Se corrigió una llamada
+  (`#mergeResponse`, rama `dom-render`) que los omitía y habría contado con
+  estimación una respuesta de ChatGPT.
+- **`src/main/main.js`**: los dos registros de respuesta (`incoming` y la captura
+  por CDP) declaran `tokensSource`.
+
+Efecto medido: la respuesta `«Esta respuesta de prueba tiene siete palabras
+exactas.»` (54 caracteres) suma **10** tokens o200k, **11** cl100k y **8** con la
+estimación de un proveedor sin tokenizador. Antes sumaba 8 siempre.
+
+Consecuencias declaradas:
+
+- Las cifras de salida **suben** en ChatGPT (el BPE cuenta más que las palabras) y
+  el total histórico ya guardado no se recalcula: sólo cambian las respuestas
+  nuevas. No se borra ni se reescribe ningún registro existente.
+- El conteo se hace sobre el texto acumulado en cada fragmento (una sola cifra por
+  respuesta, corregida al crecer), no sumando fragmentos.
+- Las pruebas que fijaban el número de palabras se actualizaron a la nueva regla;
+  ninguna se eliminó. `test/tokens-salida.test.js` (17), `test/contadores*.test.js`
+  y `test/chatgpt-output-circuit.test.js` (56) quedan en verde.
+- La estimación de los proveedores sin tokenizador se conserva y sigue siendo la
+  documentada en `docs/FIX-TOKENS-SALIDA.md`.
+
+## 10. Entrega
+
+- ZIP del proyecto: `Nexo-0.1.33-conteo-tokens-2026-11-11.zip`, con
+  `build/inject.js` regenerado e incluido, sin `node_modules` ni `.git`.
 - SHA-256 del ZIP: se informa en el mensaje de entrega y en el archivo
   `SHA256.txt` que acompaña al ZIP (no puede ir dentro del propio ZIP sin cambiar
   su hash).

@@ -1,4 +1,4 @@
-import { estimateOutputTokens } from '../src/core/text.js';
+import { countOutputTokens } from '../src/main/tokens.js';
 /**
  * Contadores con la observación CDP, que es el camino que funciona aunque la
  * capa de la página no esté activa.
@@ -113,7 +113,7 @@ test('la conversación real «hola» cuenta 1 mensaje, 1 respuesta y 1 turno', a
   assert.equal(fin.messages, antes.messages + 1, 'un mensaje, no dos');
   assert.equal(fin.responses, antes.responses + 1, 'una respuesta, no cuatro');
   assert.equal(Object.hasOwn(fin, 'turnsCompleted'), false, 'el contador eliminado no se expone');
-  assert.equal(fin.outputTokens, antes.outputTokens + estimateOutputTokens(RESPUESTA), 'los tokens de la respuesta visible');
+  assert.equal(fin.outputTokens, antes.outputTokens + countOutputTokens(RESPUESTA, '', 'chatgpt.com'), 'los tokens de la respuesta visible');
   assert.equal(
     fin.interventions,
     antes.interventions + 2,
@@ -512,7 +512,7 @@ test('CDP recibe SSE sólo por streaming y guarda texto/tokens en EVO MEMORY sin
   const fin = await stats();
   assert.equal(fin.messages, antes.messages + 1);
   assert.equal(fin.responses, antes.responses + 1);
-  assert.equal(fin.outputTokens, antes.outputTokens + estimateOutputTokens(texto));
+  assert.equal(fin.outputTokens, antes.outputTokens + countOutputTokens(texto, '', 'chatgpt.com'));
   assert.ok(view.debugger.commands.some((c) => c.method === 'Network.streamResourceContent'));
   assert.equal(view.debugger.commands.some((c) => c.method === 'Network.getResponseBody'), false);
   const memory = await callIpc('nexo:memory:list');

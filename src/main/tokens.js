@@ -32,7 +32,28 @@ export function countTokensForProvider(text, model = '', provider = '') {
     : estimateTokens(text);
 }
 
-/** Salida IA: una unidad estimada por palabra capturada, sin tokenizador. */
-export function countOutputTokens(text) {
-  return estimateOutputTokens(text);
+/**
+ * Tokens de salida de una respuesta capturada.
+ *
+ * Mismo criterio que la entrada: donde hay tokenizador se cuenta con el
+ * diccionario del modelo (`o200k`/`cl100k`); donde no lo hay se conserva la
+ * estimación por palabra de siempre, que es una aproximación y nunca se
+ * presenta como conteo exacto. El proveedor decide, igual que en la entrada,
+ * con `tokenCounterForProvider`.
+ *
+ * @param {string} text     texto capturado, tal cual se mostró
+ * @param {string} [model]  modelo declarado por el sitio o la petición
+ * @param {string} [provider] host o id de sitio (`chatgpt.com`, `claude`…)
+ * @returns {number}
+ */
+export function countOutputTokens(text, model = '', provider = '') {
+  if (typeof text !== 'string' || text.length === 0) return 0;
+  if (tokenCounterForProvider(provider) !== 'bpe') return estimateOutputTokens(text);
+  try {
+    return countGptTokens(text, model);
+  } catch {
+    // El diccionario no cargó (paquete incompleto, memoria): la respuesta no se
+    // pierde ni deja de contarse. Se usa la estimación de siempre.
+    return estimateOutputTokens(text);
+  }
 }

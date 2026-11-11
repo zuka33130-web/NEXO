@@ -677,7 +677,8 @@ export class Engine {
   }
 
   #outputTokens(text, model = '', provider = '') {
-    return countOutputTokens(text);
+    // BPE del modelo donde hay tokenizador; estimación declarada donde no lo hay.
+    return countOutputTokens(text, model, provider);
   }
 
   /**
@@ -697,7 +698,7 @@ export class Engine {
     const identity = messageId && vistos.findLast(item => item.messageId === messageId);
     if (identity && (identity.rendered || source === 'dom-render')) {
       if (source === 'dom-render') {
-        const tokens = this.#outputTokens(text);
+        const tokens = this.#outputTokens(text, model || identity.model, provider || identity.provider);
         this.counters.outputTokens += tokens - identity.tokens;
         Object.assign(identity, { text, tokens, at: now, rendered: true, domId, documentUrl });
       }

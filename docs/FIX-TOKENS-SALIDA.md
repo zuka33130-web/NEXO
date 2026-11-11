@@ -1,3 +1,9 @@
+> **Actualización 2026-11-11:** los tokens de salida de ChatGPT/OpenAI ya no se
+> estiman por palabra: usan el BPE del modelo con la misma regla que la entrada
+> (`docs/INFORME-TOKENS-ENTRADA-2026-11-11.md`, §9). La estimación por palabra se
+> conserva para los proveedores sin tokenizador. El resto de este informe sigue
+> describiendo el comportamiento de su momento.
+>
 > **Informe histórico de la entrega anterior.** El estado actual integra los cambios
 > remotos BPE y la corrección de compilación. Las cifras, el uso de estimación y
 > la nota de no integración de este informe corresponden al snapshot anterior.

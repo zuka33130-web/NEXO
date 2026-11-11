@@ -330,7 +330,7 @@ test('un proveedor sin tokenizador conserva la estimación y la declara', async 
 /* lo que no debía cambiar                                             */
 /* ------------------------------------------------------------------ */
 
-test('los tokens de salida se cuentan igual que antes', async () => {
+test('los tokens de salida se cuentan con el BPE del modelo y la estimación queda para el resto', async () => {
   const view = await abrir('https://chatgpt.com/c/unicos-salida');
   const respuesta = 'Esta respuesta de prueba tiene siete palabras exactas.';
 
@@ -355,8 +355,12 @@ test('los tokens de salida se cuentan igual que antes', async () => {
 
   const despues = await stats();
   assert.equal(despues.responses, antes.responses + 1, 'una respuesta');
-  assert.equal(despues.outputTokens, antes.outputTokens + countOutputTokens(respuesta), 'una unidad por palabra, como siempre');
-  assert.equal(despues.outputTokens, antes.outputTokens + 8, 'ocho palabras, ocho tokens de salida');
+  assert.equal(despues.outputTokens, antes.outputTokens + countOutputTokens(respuesta, '', 'chatgpt.com'), 'BPE del modelo');
+  assert.equal(despues.outputTokens, antes.outputTokens + 10, 'diez tokens o200k, no las ocho palabras');
+  assert.equal(countOutputTokens(respuesta, 'gpt-4-turbo', 'chatgpt.com'), 11, 'cl100k cuenta once');
+  assert.equal(countOutputTokens(respuesta, '', 'claude.ai'), 8, 'sin tokenizador queda la estimación por palabra');
+  assert.equal(despues.inputTokens, antes.inputTokens + countTokensForProvider('contá también mi respuesta', '', 'chatgpt.com'),
+    'y la entrada se cuenta aparte, sin mezclarse con la salida');
 });
 
 test('EVO MEMORY guarda el texto tal cual y no mueve los contadores', async () => {

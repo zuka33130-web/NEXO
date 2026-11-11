@@ -29,8 +29,8 @@ import { test } from 'node:test';
 import { countTokens as countO200k } from 'gpt-tokenizer';
 import { countTokens as countCl100k } from 'gpt-tokenizer/encoding/cl100k_base';
 import { countGptTokens } from '../src/core/gptTokens.cjs';
-import { countTokensForProvider, tokenCounterForProvider } from '../src/main/tokens.js';
-import { estimateTokens } from '../src/core/text.js';
+import { countOutputTokens, countTokensForProvider, tokenCounterForProvider } from '../src/main/tokens.js';
+import { estimateOutputTokens, estimateTokens } from '../src/core/text.js';
 
 /** Texto real de la entrega, guardado byte a byte (sin salto de línea final). */
 const CASO_REAL = readFileSync(new URL('./fixtures/caso-real-2026-11-11.txt', import.meta.url), 'utf8');
@@ -131,6 +131,29 @@ test('el contador de la capa de entrada no estima cuando hay tokenizador', () =>
   // Proveedor sin tokenizador: se conserva la estimación y se declara como tal.
   assert.equal(tokenCounterForProvider('claude.ai'), 'estimate');
   assert.equal(countTokensForProvider(texto, 'claude-sonnet', 'claude.ai'), estimateTokens(texto));
+});
+
+test('salida: BPE del modelo donde hay tokenizador y estimación declarada donde no', () => {
+  const respuesta = 'Esta respuesta de prueba tiene siete palabras exactas.';
+  assert.equal(respuesta.length, 54);
+
+  // ChatGPT/OpenAI: el mismo diccionario que la entrada.
+  assert.equal(countOutputTokens(respuesta, '', 'chatgpt.com'), 10, 'o200k');
+  assert.equal(countOutputTokens(respuesta, 'gpt-4-turbo', 'chatgpt.com'), 11, 'cl100k');
+  assert.equal(countOutputTokens(respuesta, 'gpt-4-turbo', 'chatgpt.com'), countGptTokens(respuesta, 'gpt-4-turbo'));
+
+  // Proveedor sin tokenizador: se conserva la estimación por palabra de siempre.
+  assert.equal(countOutputTokens(respuesta, '', 'claude.ai'), 8);
+  assert.equal(countOutputTokens(respuesta, '', 'claude.ai'), estimateOutputTokens(respuesta));
+  assert.equal(tokenCounterForProvider('claude.ai'), 'estimate');
+
+  // Entrada y salida no se mezclan: en el proveedor sin tokenizador la entrada
+  // se estima por caracteres y la salida por palabras.
+  assert.notEqual(countTokensForProvider(respuesta, '', 'claude.ai'), countOutputTokens(respuesta, '', 'claude.ai'));
+
+  // El espacio y el salto sí son tokens; sin texto no hay ninguno.
+  assert.equal(countOutputTokens('  \n', '', 'chatgpt.com'), countGptTokens('  \n', ''));
+  for (const vacio of ['', null, undefined, 42]) assert.equal(countOutputTokens(vacio), 0);
 });
 
 test('un texto vacío o que no es cadena no produce tokens', () => {
