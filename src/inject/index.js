@@ -274,8 +274,12 @@ function textoDelCuadro() {
  */
 function gestoDeEnvio(razon) {
   if (!sitioActivo()) return null;
-  const texto = textoDelCuadro().trim();
-  if (!texto) return null; // sin texto no hay mensaje que contar
+  // El texto que se cuenta es el que escribió la persona, tal cual: los
+  // espacios iniciales y finales, los saltos de línea y las tabulaciones
+  // también son tokens. El recorte sirve únicamente para saber si el cuadro
+  // estaba vacío; nunca para modificar lo que se cuenta ni lo que se tokeniza.
+  const texto = textoDelCuadro();
+  if (!texto.trim()) return null; // sin texto no hay mensaje que contar
 
   const ahora = Date.now();
   const pendiente = envio.pendiente;
@@ -380,7 +384,9 @@ async function planRequest(input, init) {
     const gesture = envio.pendiente || (
       envio.porGesto && Date.now() - envio.porGesto.at <= VENTANA_ENLACE_MS ? envio.porGesto : null
     );
-    const prompt = formPrompt || gesture?.tokenText || '';
+    // Un prompt de sólo espacios no es un mensaje: se usa el texto del gesto
+    // (si lo hay) en lugar de tokenizar espacios como si fueran contenido.
+    const prompt = formPrompt.trim() ? formPrompt : (gesture?.tokenText || '');
     return {
       chat: true,
       send: true,
@@ -419,7 +425,11 @@ async function planRequest(input, init) {
   }
 
   const located = locateUserText(parsed, site);
-  if (!located || !located.value) return { chat: true, send: true, reason: 'sin-texto' };
+  // Un cuerpo cuyo mensaje es sólo espacios o saltos no trae texto: se cuenta el
+  // envío sin caracteres ni tokens, igual que en la red y en CDP.
+  if (!located || typeof located.value !== 'string' || !located.value.trim()) {
+    return { chat: true, send: true, reason: 'sin-texto' };
+  }
 
   const prompt = located.value;
   const base = {

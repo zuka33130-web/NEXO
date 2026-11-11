@@ -27,7 +27,7 @@ import { createProfile } from './profile.js';
 import { buildMenu } from './menu.js';
 import { DEFAULT_SETTINGS, isEvoMemoryEnabled } from '../core/settings.js';
 import { fingerprint, gptModelFromRequest } from '../core/text.js';
-import { countTokensForProvider, countOutputTokens } from './tokens.js';
+import { countTokensForProvider, countOutputTokens, tokenCounterForProvider } from './tokens.js';
 import { hostOf, isInternal } from '../nav/url.js';
 import { commandFor } from '../nav/shortcuts.js';
 import { sanitizeFilename } from '../nav/downloads.js';
@@ -890,6 +890,8 @@ function registerIpc() {
           mediated: Boolean(clean.payload.mediated),
           chars: Number(clean.payload.chars) || 0,
           tokens: Number(clean.payload.tokens) || 0,
+          // bpe = diccionario del modelo; estimate = estimación por caracteres.
+          tokensSource: tokenCounterForProvider(clean.payload.host || clean.payload.site),
           duplicate: Boolean(counted?.duplicate),
         },
         ts: Date.now(),
@@ -1209,9 +1211,14 @@ function noteUserMessageFromNetwork(details = {}) {
   // cuerpo manda; la ruta se anota como evidencia.
   const rutaConocida = isMediable(site, url, method);
   const located = json ? locateUserText(json, site) : null;
-  const textoCuerpo = located && typeof located.value === 'string' ? located.value.trim() : '';
+  // El texto se conserva tal como viaja en el cuerpo: recortarlo antes de
+  // tokenizar cambiaba la cuenta, porque el BPE cuenta los espacios. El recorte
+  // queda sólo para decidir si el mensaje está vacío.
+  const textoCuerpo = located && typeof located.value === 'string'
+    ? located.value
+    : '';
   if (!rutaConocida) {
-    if (!textoCuerpo || isPreparationRequest(site, url)) {
+    if (!textoCuerpo.trim() || isPreparationRequest(site, url)) {
       // Un POST al proveedor que no es la ruta que conocemos y cuyo cuerpo no
       // trae un mensaje del usuario: se anota la ruta real, sin contarla.
       noteDiagnostic({
@@ -1263,8 +1270,13 @@ function noteUserMessageFromNetwork(details = {}) {
 
   const text = textoCuerpo;
   const model = gptModelFromRequest(json);
+  // Un solo conteo por petición: el mismo número va al motor y al registro, así
+  // no pueden discrepar por tokenizar dos veces.
+  const inputTokens = text.trim()
+    ? countTokensForProvider(text, model, site.id)
+    : 0;
 
-  if (!text) {
+  if (!text.trim()) {
     // Petición de conversación sin texto legible: el mensaje se cuenta igual
     // (sin caracteres ni tokens inventados) y queda dicho en el registro.
     const entry = {
@@ -1289,10 +1301,10 @@ function noteUserMessageFromNetwork(details = {}) {
     host,
     url,
     chars: text.length,
-    tokens: text ? countTokensForProvider(text, model, site.id) : 0,
+    tokens: inputTokens,
     model,
-    promptHash: text ? fingerprint(text) : '',
-    textFound: Boolean(text),
+    promptHash: text.trim() ? fingerprint(text) : '',
+    textFound: Boolean(text.trim()),
   });
   if (counted?.duplicate) return { seen: true, counted: false, conversation: true };
 
@@ -1310,7 +1322,8 @@ function noteUserMessageFromNetwork(details = {}) {
       url: shortPath(url),
       source: 'network',
       chars: text.length,
-      tokens: text ? countTokensForProvider(text, model, site.id) : 0,
+      tokens: inputTokens,
+      tokensSource: tokenCounterForProvider(site.id),
       conversationId: null,
     },
     ts: Date.now(),
@@ -1669,6 +1682,7 @@ app.whenReady().then(async () => {
               source: 'cdp',
               chars: event.chars,
               tokens: event.tokens,
+              tokensSource: tokenCounterForProvider(event.host),
             },
             ts: Date.now(),
           };

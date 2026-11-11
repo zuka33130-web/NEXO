@@ -1,0 +1,11 @@
+[EVO · memoria del proyecto] ## Estado del proyecto Objetivos: - Mi objetivo: comprobar que NEXO mantiene la comprensión del usuario aunque EVO MEMORY esté desactivada. Restricciones: - Restricción: no modifiques el objetivo ni inventes información. [/EVO]  [Protocolo de continuidad · Nexo] - No repitas frases, listas ni párrafos que ya escribiste en esta respuesta. - No reinicies la respuesta ni repitas el enunciado del usuario. - Si no sabes algo, dilo y propón cómo verificarlo; no inventes datos ni fuentes. - Si falta un dato imprescindible, haz una sola pregunta concreta antes de responder. - Si el usuario dice «continúa», retoma exactamente donde se cortó la respuesta anterior.  hola como vas
+
+####
+
+¡Hola! Todo bien, gracias. 😄
+
+Estoy acá, listo para seguir trabajando con vos.
+
+Podemos continuar con NEXO y comprobar si mantiene la comprensión de tus instrucciones independientemente de EVO MEMORY.
+
+¿Y vos cómo vas?

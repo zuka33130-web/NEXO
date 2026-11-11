@@ -474,8 +474,11 @@ export class CdpObserver {
     const site = detectSite(entry.host);
     const model = gptModelFromRequest(json);
     const located = locateUserText(json, site);
-    const text = located && typeof located.value === 'string' ? located.value.trim() : '';
-    if (!text) return;
+    // El texto se conserva tal como viaja en el cuerpo: recortarlo antes de
+    // tokenizar cambiaba la cuenta, porque el BPE cuenta los espacios. El
+    // recorte queda sólo para decidir si el mensaje está vacío.
+    const text = located && typeof located.value === 'string' ? located.value : '';
+    if (!text.trim()) return;
 
     if (!entry.chat && isPreparationRequest(site, entry.url)) {
       // Preparar no es enviar: mismo cuerpo, pero no es el mensaje.
@@ -484,6 +487,11 @@ export class CdpObserver {
     entry.send = true;
     entry.prompt = text;
     entry.model = model;
+    // Un solo conteo por petición: el mismo número va al motor y al evento
+    // `send`, así no pueden discrepar por tokenizar dos veces.
+    const inputTokens = text.trim()
+      ? countTokensForProvider(text, model, entry.host)
+      : 0;
     if (!entry.chat) {
       // El cuerpo es el de un mensaje del usuario aunque la ruta no sea la que
       // el perfil declara: la conversación cambió de endpoint. Desde acá la
@@ -512,7 +520,7 @@ export class CdpObserver {
         host: entry.host,
         url: entry.url,
         chars: text.length,
-        tokens: countTokensForProvider(text, model, entry.host),
+        tokens: inputTokens,
         promptHash: fingerprint(text),
         textFound: true,
       });
@@ -527,7 +535,7 @@ export class CdpObserver {
         site: site.id,
         url: entry.url,
         chars: text.length,
-        tokens: countTokensForProvider(text, model, entry.host),
+        tokens: inputTokens,
         promptHash: fingerprint(text),
       });
     } catch (error) {
