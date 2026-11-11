@@ -166,7 +166,10 @@ independiente del algoritmo de `tiktoken` con los rangos publicados).
 | `a\tb\tc` | 5 | 3 | 3 | 3 | 3 |
 | `  línea uno\n\tlínea dos  ` | 24 | 8 | 8 | 9 | 9 |
 | texto largo (`La respuesta larga sigue. ` × 420 + `FINAL`) | 10 925 | 2101 | 2101 | 2521 | 2521 |
-| **caso real §9** (`test/fixtures/caso-real-2026-11-11.txt`) | 933 | **215** | 215 | **258** | 258 |
+| **caso real §9** (`test/fixtures/caso-real-2026-11-11.txt`) | 933 * | **215** | 215 | **258** | 258 |
+
+\* 933 es la longitud que informa JavaScript (UTF-16); en code points son 932,
+porque el emoji 😄 ocupa dos unidades. Los tokens no cambian por contarlo así.
 
 Comprobación cruzada adicional: 500 textos generados de forma determinista con
 espacios, `\n`, `\t`, `\r\n`, acentos, `«»`, `—`, `…`, emojis con ZWJ (`👩‍💻`),
@@ -175,8 +178,9 @@ banderas (`🇦🇷`), CJK (`Ω 日本`), comparados entre las dos implementacio
 
 ### Caso real de la entrega (§9)
 
-El texto guardado en `test/fixtures/caso-real-2026-11-11.txt` (933 caracteres,
-sin salto de línea final; agregarlo no cambia el resultado) da:
+El texto guardado en `test/fixtures/caso-real-2026-11-11.txt` (933 unidades
+UTF-16 = 932 code points = 953 bytes en UTF-8, sin salto de línea final; agregarlo
+no cambia el resultado) da:
 
 - **`o200k_base` (GPT-5.x, GPT-4o, GPT-4.1, GPT-4.5, o1, o3): 215 tokens.**
 - **`cl100k_base` (GPT-4, GPT-4-turbo, GPT-3.5): 258 tokens.**
@@ -199,7 +203,7 @@ red abierta:
 ```python
 import tiktoken
 texto = open("test/fixtures/caso-real-2026-11-11.txt", encoding="utf-8").read()
-print(len(texto))                                          # 933
+print(len(texto))                                          # 932 code points (933 en JavaScript)
 print(len(tiktoken.get_encoding("o200k_base").encode(texto)))   # 215
 print(len(tiktoken.get_encoding("cl100k_base").encode(texto)))  # 258
 ```

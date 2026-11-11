@@ -93,8 +93,10 @@ test('texto largo: 10 925 caracteres, 2101 tokens o200k y 2521 cl100k', () => {
   assert.equal(countCl100k(TEXTO_LARGO), 2521);
 });
 
-test('caso real de la entrega: 933 caracteres, 215 tokens o200k y 258 cl100k', () => {
+test('caso real de la entrega: 933 unidades UTF-16, 215 tokens o200k y 258 cl100k', () => {
+  // `String.length` cuenta unidades UTF-16: el emoji 😄 suma dos (932 code points).
   assert.equal(CASO_REAL.length, 933);
+  assert.equal([...CASO_REAL].length, 932);
   assert.equal(countGptTokens(CASO_REAL, 'gpt-5'), 215);
   assert.equal(countGptTokens(CASO_REAL, 'gpt-4'), 258);
   assert.equal(countO200k(CASO_REAL), 215);
