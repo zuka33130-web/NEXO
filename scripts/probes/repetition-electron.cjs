@@ -69,7 +69,17 @@ app.whenReady().then(() => {
       await pause(100);
     }
     if (!(await liveRoles())) {
-      const live = await shell.executeJavaScript(`(()=>({status:document.getElementById('memoryLiveStatus')?.textContent||'',html:(document.getElementById('memoryLiveConversation')?.innerHTML||'').slice(0,400),active:(document.querySelector('.stab.active')||{}).dataset?.panel||'',cached:null}))()`);
+      const live = await shell.executeJavaScript(`(async()=>{
+        const out={status:document.getElementById('memoryLiveStatus')?.textContent||'',
+          active:(document.querySelector('.stab.active')||{}).dataset?.panel||'',
+          panels:[...document.querySelectorAll('.stab')].map(s=>s.dataset.panel+(s.classList.contains('active')?'*':'')),
+          views:[...document.querySelectorAll('webview')].map(v=>({url:v.getURL?.()||'',id:v.getWebContentsId?.()}))};
+        try{const g=await nexo.getSettings();out.enabled=g.enabled;out.mem=Boolean(g.memory&&g.memory.enabled);}catch(e){out.settingsErr=String(e&&e.message||e);}
+        try{out.stats=await nexo.memory.stats();}catch(e){out.statsErr=String(e&&e.message||e);}
+        const v=out.views.find(x=>x.url==='https://chatgpt.com/c/fixture');
+        if(v){try{const r=await nexo.repetition.get({webContentsId:v.id,href:v.url});out.get={href:r&&r.href,id:r&&r.webContentsId,turns:r&&r.turns&&r.turns.length};}catch(e){out.getErr=String(e&&e.message||e);}}
+        out.html=((document.getElementById('memoryLiveConversation')||{}).innerHTML||'').slice(0,300);
+        return out;})()`);
       report.live = live;
       throw Error('dos roles recibidos en panel real: ' + JSON.stringify(live));
     }
