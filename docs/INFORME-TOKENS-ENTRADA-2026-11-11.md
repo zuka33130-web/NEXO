@@ -300,8 +300,13 @@ dos están corregidas:
    captura (`#chatCaptureCurrent` = 2 turnos y
    `#chatCaptureDetail` = «1 mensajes tuyos y 1 respuestas de ChatGPT»), con EVO
    MEMORY activa porque la lectura en vivo sólo se muestra en ese modo. Las
-   cifras de tokens del probe no cambiaron: `«  uno»`, `«  uno dos»` y
-   `«  uno dos tres\n»` dan 1, 2 y 3 tokens con el BPE, igual que antes.
+   cifras de tokens del probe sí cambian: `«  uno»`, `«  uno dos»` y
+   `«  uno dos tres\n»` dan **2, 3 y 5** tokens con el BPE real (los espacios
+   cuentan y el salto de línea también), no 1, 2 y 3 como daba la cuenta por
+   palabra. Se comprobó contra el tokenizador de referencia (`gpt-tokenizer`
+   `o200k_base` y `cl100k_base`): 2, 3 y 5 en ambos. El probe ahora mide el
+   incremento del contador desde una base, porque la conversación anterior ya
+   había sumado sus propios tokens.
 
 Limitación honesta: el probe necesita Electron real y no se puede ejecutar en este
 entorno; se corrigió contra los selectores y textos que existen hoy en

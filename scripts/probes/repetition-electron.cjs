@@ -106,14 +106,16 @@ app.whenReady().then(() => {
     // incremento de este texto, que es lo que la prueba quiere demostrar (el
     // parcial suma sus tokens BPE sin contar una respuesta nueva por fragmento).
     const base = await shell.executeJavaScript('nexo.getStats()');
-    for (const [text, tokens] of [['  uno',1],['  uno dos',2],['  uno dos tres\n',3]]) {
+    // Valores medidos con el BPE real (o200k_base = cl100k_base aquí):
+    // «  uno» 2, «  uno dos» 3, «  uno dos tres\n» 5. Los espacios cuentan.
+    for (const [text, tokens] of [['  uno',2],['  uno dos',3],['  uno dos tres\n',5]]) {
       await guest.executeJavaScript(`document.getElementById('liveAnswer').textContent=${JSON.stringify(text)}`);
       await until(() => shell.executeJavaScript(`document.querySelectorAll('#memoryLiveConversation .repeat-text')[3]?.textContent===${JSON.stringify(text)}`), `Memoria refleja parcial de ${tokens} token(s)`);
       const esperado = { outputTokens: base.outputTokens + tokens, responses: base.responses };
       await until(() => shell.executeJavaScript(`nexo.getStats().then(s=>s.outputTokens===${esperado.outputTokens}&&s.responses===${esperado.responses})`), `contador visible suma ${tokens} token(s) antes de terminar (esperado ${JSON.stringify(esperado)})`);
     }
     await guest.executeJavaScript(`document.getElementById('fixtureStop').remove()`);
-    await until(() => shell.executeJavaScript(`nexo.getStats().then(s=>s.responses===${base.responses + 1} && s.outputTokens===${base.outputTokens + 3})`), 'cierre DOM conserva tres tokens y una respuesta');
+    await until(() => shell.executeJavaScript(`nexo.getStats().then(s=>s.responses===${base.responses + 1} && s.outputTokens===${base.outputTokens + 5})`), 'cierre DOM conserva cinco tokens y una respuesta');
     await until(() => shell.executeJavaScript(String.raw`nexo.memory.conversations().then(c=>c.some(e=>e.turns.some(t=>t.id==='a2'&&t.content==='  uno dos tres\n')))`), 'transcripción persistente contiene texto literal final');
     const memoryFile = await shell.executeJavaScript('nexo.memory.stats().then(s=>s.file)');
     const disk = JSON.parse(readFileSync(memoryFile, 'utf8'));
