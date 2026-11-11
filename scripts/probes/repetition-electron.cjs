@@ -52,12 +52,27 @@ app.whenReady().then(() => {
   shell.send = (channel, ...args) => { if (channel !== 'nexo:repetition-changed' || !suppressAutomaticSnapshot) realSend(channel, ...args); };
   await until(() => shell.executeJavaScript('Boolean(window.nexo && document.querySelector("webview"))').catch(() => false), 'shell lista');
   // EVO MEMORY sólo lee con el interruptor general encendido: `enabled:false`
-  // apaga la memoria y el panel deja de mostrar la conversación en vivo.
-  await shell.executeJavaScript(`(async()=>{await nexo.setSettings({enabled:true,memory:{enabled:true}});document.getElementById('omnibox').value='https://chatgpt.com/c/fixture';document.getElementById('omniboxForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));document.querySelector('.stab[data-panel="memory"]').click();})()`);
+  // apaga la memoria y el panel deja de mostrar la conversación en vivo. Se
+  // confirma el ajuste ANTES de navegar: si la lectura llega antes que el aviso
+  // de ajustes, la capa descarta el snapshot en vivo y la lista queda vacía.
+  await shell.executeJavaScript(`nexo.setSettings({enabled:true,memory:{enabled:true}})`);
+  await until(() => shell.executeJavaScript("nexo.getSettings().then(s=>s.enabled===true&&s.memory&&s.memory.enabled===true)"), 'memoria activa antes de navegar');
+  await shell.executeJavaScript(`(async()=>{document.getElementById('omnibox').value='https://chatgpt.com/c/fixture';document.getElementById('omniboxForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));document.querySelector('.stab[data-panel="memory"]').click();})()`);
   await until(() => webContents.getAllWebContents().some(w => w.getType() === 'webview' && w.getURL() === 'https://chatgpt.com/c/fixture'), 'webview HTTPS cargada');
   const guest = webContents.getAllWebContents().find(w => w.getType() === 'webview' && w.getURL() === 'https://chatgpt.com/c/fixture');
+  const liveRoles = () => shell.executeJavaScript('document.querySelectorAll("#memoryLiveConversation .repeat-message").length===2');
   try {
-    await until(() => shell.executeJavaScript('document.querySelectorAll("#memoryLiveConversation .repeat-message").length===2'), 'dos roles recibidos en panel real');
+    // Si el aviso del lector llegó con el panel inactivo, el refresco lo reintenta:
+    // cambiar de pestaña y volver ejecuta el mismo refresco que un clic real.
+    for (let i = 0; i < 100 && !(await liveRoles()); i++) {
+      if (i % 20 === 19) await shell.executeJavaScript(`document.querySelector('.stab[data-panel="activity"]').click();document.querySelector('.stab[data-panel="memory"]').click();`);
+      await pause(100);
+    }
+    if (!(await liveRoles())) {
+      const live = await shell.executeJavaScript(`(()=>({status:document.getElementById('memoryLiveStatus')?.textContent||'',html:(document.getElementById('memoryLiveConversation')?.innerHTML||'').slice(0,400),active:(document.querySelector('.stab.active')||{}).dataset?.panel||'',cached:null}))()`);
+      report.live = live;
+      throw Error('dos roles recibidos en panel real: ' + JSON.stringify(live));
+    }
     const exact = await shell.executeJavaScript(String.raw`(()=>{const t=[...document.querySelectorAll('#memoryLiveConversation .repeat-text')].map(n=>n.textContent);return t[0]==='  Hola\n'&&t[1]==='Respuesta de fixture 😊\n  código\n';})()`);
     if (!exact) throw Error('Texto no literal en el panel');
     // El diagnóstico del panel ahora es la tarjeta de captura en vivo: dos turnos
@@ -140,6 +155,7 @@ app.whenReady().then(() => {
   } catch (error) {
     report.reader = await guest.executeJavaScript('window.__nexo?.conversationReader?.()').catch(() => null);
     report.panel = await shell.executeJavaScript('document.getElementById("chatCaptureDetail")?.textContent').catch(() => null);
+    report.live = await shell.executeJavaScript(`(()=>({status:document.getElementById('memoryLiveStatus')?.textContent||'',html:(document.getElementById('memoryLiveConversation')?.innerHTML||'').slice(0,400)}))()`).catch(() => null);
     throw error;
   }
 })().catch(finish);
