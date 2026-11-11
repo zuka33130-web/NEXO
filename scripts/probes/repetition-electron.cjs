@@ -51,7 +51,9 @@ app.whenReady().then(() => {
   const realSend = shell.send.bind(shell);
   shell.send = (channel, ...args) => { if (channel !== 'nexo:repetition-changed' || !suppressAutomaticSnapshot) realSend(channel, ...args); };
   await until(() => shell.executeJavaScript('Boolean(window.nexo && document.querySelector("webview"))').catch(() => false), 'shell lista');
-  await shell.executeJavaScript(`(async()=>{await nexo.setSettings({enabled:false,memory:{enabled:true}});document.getElementById('omnibox').value='https://chatgpt.com/c/fixture';document.getElementById('omniboxForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));document.querySelector('.stab[data-panel="memory"]').click();})()`);
+  // EVO MEMORY sólo lee con el interruptor general encendido: `enabled:false`
+  // apaga la memoria y el panel deja de mostrar la conversación en vivo.
+  await shell.executeJavaScript(`(async()=>{await nexo.setSettings({enabled:true,memory:{enabled:true}});document.getElementById('omnibox').value='https://chatgpt.com/c/fixture';document.getElementById('omniboxForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));document.querySelector('.stab[data-panel="memory"]').click();})()`);
   await until(() => webContents.getAllWebContents().some(w => w.getType() === 'webview' && w.getURL() === 'https://chatgpt.com/c/fixture'), 'webview HTTPS cargada');
   const guest = webContents.getAllWebContents().find(w => w.getType() === 'webview' && w.getURL() === 'https://chatgpt.com/c/fixture');
   try {
@@ -67,7 +69,7 @@ app.whenReady().then(() => {
     report.checks.push('texto literal, ambos roles y deduplicación del DOM real');
     await guest.executeJavaScript(`document.querySelector('.markdown').textContent+='Respuesta final';`);
     await until(() => shell.executeJavaScript('document.querySelectorAll("#memoryLiveConversation .repeat-text")[1]?.textContent.endsWith("Respuesta final")'), 'streaming DOM actualiza panel sin duplicados');
-    await shell.executeJavaScript(`(async()=>{await nexo.setSettings({enabled:false,memory:{enabled:true}});document.querySelector('.stab[data-panel="memory"]').click();})()`);
+    await shell.executeJavaScript(`(async()=>{await nexo.setSettings({enabled:true,memory:{enabled:true}});document.querySelector('.stab[data-panel="memory"]').click();})()`);
     await until(() => shell.executeJavaScript('document.querySelectorAll("#memoryLiveConversation .repeat-text").length===2'), 'Memoria muestra la misma conversación en vivo');
     await guest.executeJavaScript(`window.postMessage({__nexo:'event',type:'outgoing',payload:{host:'chatgpt.com',site:'chatgpt',source:'composer',messageId:'render-fixture-send',tokenText:'pregunta nueva',chars:14}},'*');const u=document.createElement('article');u.setAttribute('data-message-author-role','user');u.setAttribute('data-message-id','u2');u.textContent='pregunta nueva';document.querySelector('main').append(u);`);
     await until(() => shell.executeJavaScript('document.querySelectorAll("#memoryLiveConversation .repeat-text").length===3'), 'envío observado sin contar historial como salida');
