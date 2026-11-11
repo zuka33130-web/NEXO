@@ -102,13 +102,18 @@ app.whenReady().then(() => {
     await guest.executeJavaScript(`window.postMessage({__nexo:'event',type:'outgoing',payload:{host:'chatgpt.com',site:'chatgpt',source:'composer',messageId:'render-fixture-send',tokenText:'pregunta nueva',chars:14}},'*');const u=document.createElement('article');u.setAttribute('data-message-author-role','user');u.setAttribute('data-message-id','u2');u.textContent='pregunta nueva';document.querySelector('main').append(u);`);
     await until(() => shell.executeJavaScript('document.querySelectorAll("#memoryLiveConversation .repeat-text").length===3'), 'envío observado sin contar historial como salida');
     await guest.executeJavaScript(`const a=document.createElement('article');a.setAttribute('data-message-author-role','assistant');a.setAttribute('data-message-id','a2');a.innerHTML='<pre id="liveAnswer" class="markdown"></pre>';document.querySelector('main').append(a);const stop=document.createElement('button');stop.id='fixtureStop';stop.setAttribute('data-testid','stop-button');document.body.append(stop);`);
-    for (const [text, words] of [['  uno',1],['  uno dos',2],['  uno dos tres\n',3]]) {
+    // La conversación anterior ya aportó sus tokens al contador: se mide el
+    // incremento de este texto, que es lo que la prueba quiere demostrar (el
+    // parcial suma sus tokens BPE sin contar una respuesta nueva por fragmento).
+    const base = await shell.executeJavaScript('nexo.getStats()');
+    for (const [text, tokens] of [['  uno',1],['  uno dos',2],['  uno dos tres\n',3]]) {
       await guest.executeJavaScript(`document.getElementById('liveAnswer').textContent=${JSON.stringify(text)}`);
-      await until(() => shell.executeJavaScript(`document.querySelectorAll('#memoryLiveConversation .repeat-text')[3]?.textContent===${JSON.stringify(text)}`), `Memoria refleja parcial ${words} palabra(s)`);
-      await until(() => shell.executeJavaScript(`nexo.getStats().then(s=>s.outputTokens===${words} && s.responses===0)`), `contador visible suma ${words} palabra(s) antes de terminar`);
+      await until(() => shell.executeJavaScript(`document.querySelectorAll('#memoryLiveConversation .repeat-text')[3]?.textContent===${JSON.stringify(text)}`), `Memoria refleja parcial de ${tokens} token(s)`);
+      const esperado = { outputTokens: base.outputTokens + tokens, responses: base.responses };
+      await until(() => shell.executeJavaScript(`nexo.getStats().then(s=>s.outputTokens===${esperado.outputTokens}&&s.responses===${esperado.responses})`), `contador visible suma ${tokens} token(s) antes de terminar (esperado ${JSON.stringify(esperado)})`);
     }
     await guest.executeJavaScript(`document.getElementById('fixtureStop').remove()`);
-    await until(() => shell.executeJavaScript('nexo.getStats().then(s=>s.responses===1 && s.outputTokens===3)'), 'cierre DOM conserva tres palabras y una respuesta');
+    await until(() => shell.executeJavaScript(`nexo.getStats().then(s=>s.responses===${base.responses + 1} && s.outputTokens===${base.outputTokens + 3})`), 'cierre DOM conserva tres tokens y una respuesta');
     await until(() => shell.executeJavaScript(String.raw`nexo.memory.conversations().then(c=>c.some(e=>e.turns.some(t=>t.id==='a2'&&t.content==='  uno dos tres\n')))`), 'transcripción persistente contiene texto literal final');
     const memoryFile = await shell.executeJavaScript('nexo.memory.stats().then(s=>s.file)');
     const disk = JSON.parse(readFileSync(memoryFile, 'utf8'));
@@ -168,6 +173,7 @@ app.whenReady().then(() => {
   } catch (error) {
     report.reader = await guest.executeJavaScript('window.__nexo?.conversationReader?.()').catch(() => null);
     report.panel = await shell.executeJavaScript('document.getElementById("chatCaptureDetail")?.textContent').catch(() => null);
+    report.stats = await shell.executeJavaScript('nexo.getStats()').catch(() => null);
     report.live = await shell.executeJavaScript(`(()=>({status:document.getElementById('memoryLiveStatus')?.textContent||'',html:(document.getElementById('memoryLiveConversation')?.innerHTML||'').slice(0,400)}))()`).catch(() => null);
     throw error;
   }
